@@ -341,6 +341,7 @@ def sync(
     [dim]  koreanstocks sync --token ghp_xxxx[/dim]
     """
     import httpx
+    import shutil
     from pathlib import Path
     from koreanstocks.core.config import config
 
@@ -412,7 +413,28 @@ def sync(
                     typer.echo("")  # 진행률 줄바꿈
 
         # 정상 수신 후 최종 경로로 이동 (원자적 교체)
-        tmp_path.replace(db_path)
+        try:
+            tmp_path.replace(db_path)
+        except PermissionError as e:
+            backup_path = db_path.with_suffix(".db.bak")
+            try:
+                if db_path.exists():
+                    shutil.copy2(db_path, backup_path)
+                shutil.copy2(tmp_path, db_path)
+                tmp_path.unlink(missing_ok=True)
+                typer.echo(
+                    "Windows 파일 교체 권한 오류가 발생해 복사 방식으로 DB를 갱신했습니다. "
+                    f"기존 DB 백업: {backup_path}"
+                )
+            except PermissionError:
+                typer.echo(
+                    "DB 파일 교체 실패: stock_analysis.db가 다른 프로그램에서 열려 있거나 "
+                    "Windows가 파일 쓰기를 차단하고 있습니다.\n"
+                    "koreanstocks serve, Python 프로세스, DB Browser/Excel 등을 모두 닫은 뒤 "
+                    "다시 `koreanstocks sync --force`를 실행하세요.",
+                    err=True,
+                )
+                raise typer.Exit(1) from e
         typer.echo(f"완료: {db_path}  ({downloaded // 1024:,} KB)")
 
         # watchlist 복원

@@ -53,7 +53,7 @@ class MacroNewsAgent:
     """
 
     def __init__(self) -> None:
-        self.client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
+        self.client = config.create_openai_client(openai)
         self._cache: Dict[str, Any] = {}   # {"date": str, "result": dict}
 
     # ── 퍼블릭 ────────────────────────────────────────────────────────────────

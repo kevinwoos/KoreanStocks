@@ -8,6 +8,7 @@ __pycache__/
 *.so
 .Python
 env/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -30,6 +31,8 @@ wheels/
 #   git update-index --skip-worktree data/storage/stock_analysis.db
 *.db
 !data/storage/stock_analysis.db
+*.bak
+*.tmp
 
 # OS
 .DS_Store

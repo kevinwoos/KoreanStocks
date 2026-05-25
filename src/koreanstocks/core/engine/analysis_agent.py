@@ -41,7 +41,7 @@ class AnalysisAgent:
     """주식 데이터 분석 및 AI 의견 생성을 담당하는 에이전트"""
 
     def __init__(self):
-        self.client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
+        self.client = config.create_openai_client(openai)
 
     def analyze_stock(self, code: str, name: str = "") -> Dict[str, Any]:
         """특정 종목에 대한 심층 분석 수행"""

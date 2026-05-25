@@ -20,7 +20,7 @@ class NewsAgent:
     """주식 관련 뉴스 수집 및 감성 분석을 담당하는 에이전트"""
 
     def __init__(self):
-        self.client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
+        self.client = config.create_openai_client(openai)
         self.naver_client_id = config.NAVER_CLIENT_ID
         self.naver_client_secret = config.NAVER_CLIENT_SECRET
         self.dart_api_key = config.DART_API_KEY

@@ -1,6 +1,11 @@
 import os
+import json
+import logging
 from pathlib import Path
+from types import SimpleNamespace
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_base_dir() -> str:
@@ -41,6 +46,41 @@ if _env_in_base.exists():
     load_dotenv(dotenv_path=_env_in_base, override=False)
 
 
+class _DisabledOpenAIClient:
+    """OpenAI API key가 없을 때 GPT 호출을 로컬 neutral 응답으로 대체한다."""
+
+    def __init__(self):
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+
+    def _create(self, *args, **kwargs):
+        logger.warning("OPENAI_API_KEY is missing or set to 'none'; skipping GPT call.")
+        content = json.dumps(
+            {
+                "summary": "OPENAI_API_KEY 미설정으로 AI 분석을 건너뜀",
+                "strength": "",
+                "weakness": "",
+                "reasoning": "OPENAI_API_KEY 미설정으로 GPT 호출을 건너뜀",
+                "action": "N/A",
+                "target_price": 0,
+                "target_rationale": "",
+                "sentiment_score": 0,
+                "sentiment_label": "Neutral",
+                "reason": "OPENAI_API_KEY 미설정으로 감성 분석을 건너뜀",
+                "top_news": "",
+                "macro_sentiment_score": 0,
+                "macro_summary": "OPENAI_API_KEY 미설정으로 거시 분석을 건너뜀",
+            },
+            ensure_ascii=False,
+        )
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content=content)
+                )
+            ]
+        )
+
+
 class Config:
     # Version — __init__.py 단일 소스에서 참조
     from koreanstocks import VERSION
@@ -52,6 +92,7 @@ class Config:
 
     # API Keys
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_ENABLED = bool(OPENAI_API_KEY and OPENAI_API_KEY.strip().lower() != "none")
     NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
     NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
     DART_API_KEY = os.getenv("DART_API_KEY", "")
@@ -65,6 +106,12 @@ class Config:
     
     # Model Settings
     DEFAULT_MODEL = "gpt-5.4-nano"
+
+    def create_openai_client(self, openai_module):
+        if self.OPENAI_ENABLED:
+            return openai_module.OpenAI(api_key=self.OPENAI_API_KEY)
+        logger.warning("OPENAI_API_KEY is missing or set to 'none'; GPT features are disabled.")
+        return _DisabledOpenAIClient()
     
     # Trading Settings
     TRANSACTION_FEE = 0.00015  # 0.015%
